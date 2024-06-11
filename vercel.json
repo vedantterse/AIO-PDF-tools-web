@@ -11,8 +11,5 @@
       "src": "/(.*)",
       "dest": "app.py"
     }
-  ],
-  "projectSettings": {
-    "framework": "flask"
-  }
+  ]
 }
