@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <meta charset="UTF-8" />
+        <title>AIO-PDF TOOLS</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+                background: linear-gradient(45deg, #7f7fd5, #86a8e7, #91eae4);
+                background-size: 400% 400%;
+                animation: gradient 15s ease infinite;
+                display: grid;
+                grid-template-columns: repeat(1, 1fr);
+                grid-gap: 20px;
+            }
+
+            @keyframes gradient {
+                0% {
+                    background-position: 10% 50%;
+                }
+                50% {
+                    background-position: 100% 50%;
+                }
+                100% {
+                    background-position: 0% 50%;
+                }
+            }
+
+            h1 {
+                color: #f8f4f4;
+                grid-column: span 2;
+                text-align: center;
+            }
+
+            form {
+                background-color: #fff;
+                padding: 20px;
+                border-radius: 20px;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            }
+
+            input[type="file"],
+        input[type="password"],
+        input[type="text"],
+        input[type="number"], /* Added style for number input */
+        button {
+                padding: 10px;
+                margin-right: 20px;
+                border: none;
+                border-radius: 5px;
+                background-color: #4cafaf;
+                color: white;
+                font-size: 16px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
+
+            input[type="file"]:hover,
+        input[type="password"]:hover,
+        input[type="text"]:hover,
+        input[type="number"]:hover, /* Added hover effect */
+        button:hover {
+                background-color: #45a049;
+            }
+
+            button[type="submit"] {
+                background-color: #008cba;
+            }
+
+            button[type="submit"]:hover {
+                background-color: #007baa;
+            }
+
+            .flashes {
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .flashes li {
+                background-color: #f44336;
+                color: white;
+                padding: 15px;
+                margin-bottom: 10px;
+                border-radius: 5px;
+            }
+            input::placeholder {
+            color: white; /* Set placeholder text color to white */
+        }
+            .github-logo {
+            position: absolute;
+            top: 30px; /* Adjust as needed */
+            right: 30px; /* Adjust as needed */
+             /* Ensure it's above other elements */
+        }
+        </style>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    </head>
+    <body>
+    <a href="https://github.com/vedantterse" class="github-logo"><i class="fa fa-github" style="font-size:55px"></i></i></a>
+    <h1>AIO-PDF TOOLS</h1>
+
+
+        <form action="/merge_pdfs" method="post" enctype="multipart/form-data">
+            <h2>Merge PDFs</h2>
+            <input type="file" name="pdf_files" multiple />
+            <button type="submit">Merge</button>
+        </form>
+
+        <form action="/image_to_pdf" method="post" enctype="multipart/form-data">
+            <h2>Convert Images to PDF</h2>
+            <input type="file" name="image_files" multiple />
+            <button type="submit">Convert</button>
+        </form>
+
+        <form action="/encrypt_pdf" method="post" enctype="multipart/form-data">
+            <h2>Encrypt PDF</h2>
+            <input type="file" name="pdf_file" />
+            <input type="password" name="password" placeholder="Enter password" />
+            <button type="submit">Encrypt</button>
+        </form>
+
+        <form action="/pdf_to_image" method="post" enctype="multipart/form-data">
+            <h2>Extract Images from PDF</h2>
+            <input type="file" name="pdf_file" />
+            <button type="submit">Extract</button>
+        </form>
+
+        <form action="/split_pdf" method="post" enctype="multipart/form-data">
+
+            <h2>Split PDF</h2>
+            <input type="file" name="pdf_file" />
+            <h2>
+            </h2>
+            <input type="number" name="start_page" placeholder="Start Page" />
+
+            <button type="submit">Split</button>
+            <h2>
+            </h2>
+            <input type="number" name="end_page" placeholder="End Page" />
+        </form>
+
+        <form action="/split_pdf_specific_pages" method="post" enctype="multipart/form-data">
+            <h2>Split PDF by Specific Pages</h2>
+            <input type="file" name="pdf_file" />
+            <input type="text" name="pages" placeholder="Enter pages (comma-separated)" />
+            <button type="submit">Split</button>
+        </form>
+
+        {% with messages = get_flashed_messages() %} {% if messages %}
+        <ul class="flashes">
+            {% for message in messages %}
+            <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %} {% endwith %}
+    <footer>
+        &copy; 2024 Made by Vedant Terse
+    </footer>
+    </body>
+</html>
