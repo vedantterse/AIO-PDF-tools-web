@@ -13,6 +13,6 @@
     }
   ],
   "projectSettings": {
-    "framework": "null"
+    "framework": "flask"
   }
 }
