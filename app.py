@@ -6,10 +6,13 @@ import io
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
+app.debug = True
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/merge_pdfs', methods=['POST'])
 def merge_pdfs():
@@ -34,6 +37,7 @@ def merge_pdfs():
 
     return send_file(merged_pdf_stream, as_attachment=True, download_name='merged.pdf')
 
+
 @app.route('/image_to_pdf', methods=['POST'])
 def image_to_pdf():
     if 'image_files' not in request.files:
@@ -56,6 +60,7 @@ def image_to_pdf():
         pdf_stream.seek(0)
 
     return send_file(pdf_stream, as_attachment=True, download_name='images.pdf')
+
 
 @app.route('/encrypt_pdf', methods=['POST'])
 def encrypt_pdf():
@@ -82,6 +87,7 @@ def encrypt_pdf():
 
     return send_file(encrypted_pdf_stream, as_attachment=True, download_name='encrypted.pdf')
 
+
 @app.route('/pdf_to_image', methods=['POST'])
 def pdf_to_image():
     if 'pdf_file' not in request.files:
@@ -105,6 +111,7 @@ def pdf_to_image():
             images.append(img_stream)
 
     return render_template('show_images.html', images=images)
+
 
 @app.route('/split_pdf', methods=['POST'])
 def split_pdf():
@@ -137,6 +144,7 @@ def split_pdf():
 
     return send_file(split_pdf_stream, as_attachment=True, download_name='split.pdf')
 
+
 @app.route('/split_pdf_specific_pages', methods=['POST'])
 def split_pdf_specific_pages():
     if 'pdf_file' not in request.files:
@@ -163,8 +171,10 @@ def split_pdf_specific_pages():
 
     return send_file(split_pdf_stream, as_attachment=True, download_name='split_specific.pdf')
 
+
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000,)
