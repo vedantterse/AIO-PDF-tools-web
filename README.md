@@ -45,9 +45,10 @@ cd AIO-PDF-tools-web
 ### Build the Docker Image:
 
 ```bash
-
 docker build -t flaskapp .
 ```
+### It will take some time to build the image, as it needs to install the dependencies.
+
 Run the Docker Container:
 
 ```
@@ -56,7 +57,7 @@ docker run -p 5000:5000 -v %cd%:/app flaskapp
 For Unix-based systems (Linux/macOS), use:
 
 ```
-docker run -p 5000:5000 -v $(pwd):/app flaskapp
+docker run -d -p 5000:5000 -v $(pwd):/app flaskapp
 ```
 ## ● Access the Application
 

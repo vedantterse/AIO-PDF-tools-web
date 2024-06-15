@@ -5,7 +5,9 @@ FROM python:3.8-slim
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpoppler-cpp-dev \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Create a working directory
 WORKDIR /app
