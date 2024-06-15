@@ -121,13 +121,14 @@ def pdf_to_image():
         images = convert_pdf_to_images(pdf_bytes)
 
         # Create a zip file containing all images
-        zip_filename = 'converted_images.zip'
+        zip_filename = os.path.join('/tmp', 'converted_images.zip')
         create_zip(images, zip_filename)
 
         # Send the zip file for download
         return send_file(zip_filename, as_attachment=True)
 
     except Exception as e:
+        app.logger.error(f"Error processing PDF: {str(e)}")
         flash(f"Error processing PDF: {str(e)}")
         return redirect(request.url)
 
@@ -147,6 +148,7 @@ def convert_pdf_to_images(pdf_bytes):
 def create_zip(images, zip_filename):
     with zipfile.ZipFile(zip_filename, 'w') as zipf:
         for i, img_stream in enumerate(images):
+            img_stream.seek(0)  # Ensure the stream is at the start
             zipf.writestr(f'page_{i + 1}.jpg', img_stream.read())
 
 def allowed_file(filename, allowed_extensions):
