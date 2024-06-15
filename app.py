@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash
+import os
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, send_from_directory
 from PyPDF2 import PdfMerger, PdfReader, PdfWriter
 from PIL import Image
 import fitz  # PyMuPDF
@@ -8,6 +9,10 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 app.debug = True
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 @app.route('/')
 def index():
