@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, send_file, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, send_file, flash, send_from_directory, jsonify
 from PyPDF2 import PdfMerger, PdfReader, PdfWriter
 from PIL import Image
 import fitz  # PyMuPDF
@@ -15,122 +15,264 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 app.debug = True
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return jsonify({'error': 'File size too large'}), 413
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    return jsonify({'error': 'Internal server error occurred'}), 500
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the error for debugging
+    app.logger.error(f"Unhandled exception: {str(e)}")
+    return jsonify({'error': 'An unexpected error occurred'}), 500
+
 @app.route('/favicon.ico')
 def favicon():
     return send_from_directory(os.path.join(app.root_path, 'static'),
                                'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                             'robots.txt', mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                             'sitemap.xml', mimetype='application/xml')
+
+def allowed_file_size(files):
+    MAX_FILE_SIZE = 4.5 * 1024 * 1024  # 4.5MB in bytes
+    total_size = 0
+    for file in files:
+        total_size += len(file.read())
+        file.seek(0)  # Reset file pointer
+    return total_size <= MAX_FILE_SIZE
 
 @app.route('/merge_pdfs', methods=['POST'])
 def merge_pdfs():
-    if 'pdf_files' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-    pdf_files = request.files.getlist('pdf_files')
-    if not pdf_files or pdf_files[0].filename == '':
-        flash('No selected files')
-        return redirect(request.url)
+    try:
+        if 'pdf_files' not in request.files:
+            return jsonify({'error': 'No files selected'}), 400
+        
+        pdf_files = request.files.getlist('pdf_files')
+        if not pdf_files or pdf_files[0].filename == '':
+            return jsonify({'error': 'No files selected'}), 400
+        
+        if not allowed_file_size(pdf_files):
+            return jsonify({'error': 'Total file size exceeds 4.5MB limit'}), 400
 
-    merger = PdfMerger()
-    for pdf in pdf_files:
-        if pdf and allowed_file(pdf.filename, ['pdf']):
-            pdf_stream = io.BytesIO(pdf.read())
-            merger.append(pdf_stream)
+        merger = PdfMerger()
+        for pdf in pdf_files:
+            if pdf and allowed_file(pdf.filename, ['pdf']):
+                try:
+                    pdf_stream = io.BytesIO(pdf.read())
+                    merger.append(pdf_stream)
+                except Exception as e:
+                    return jsonify({'error': 'Invalid or corrupted PDF file'}), 400
 
-    merged_pdf_stream = io.BytesIO()
-    merger.write(merged_pdf_stream)
-    merger.close()
-    merged_pdf_stream.seek(0)
+        merged_pdf_stream = io.BytesIO()
+        merger.write(merged_pdf_stream)
+        merger.close()
+        merged_pdf_stream.seek(0)
 
-    return send_file(merged_pdf_stream, as_attachment=True, download_name='merged.pdf')
-
+        return send_file(merged_pdf_stream, as_attachment=True, download_name='merged.pdf')
+    except Exception as e:
+        app.logger.error(f"Error in merge_pdfs: {str(e)}")
+        return jsonify({'error': 'Failed to merge PDFs'}), 500
 
 @app.route('/image_to_pdf', methods=['POST'])
 def image_to_pdf():
-    if 'image_files' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-    image_files = request.files.getlist('image_files')
-    if not image_files or image_files[0].filename == '':
-        flash('No selected files')
-        return redirect(request.url)
+    try:
+        if 'image_files' not in request.files:
+            return jsonify({'error': 'No files selected'}), 400
+        
+        image_files = request.files.getlist('image_files')
+        if not image_files or image_files[0].filename == '':
+            return jsonify({'error': 'No files selected'}), 400
+        
+        if not allowed_file_size(image_files):
+            return jsonify({'error': 'Total file size exceeds 4.5MB limit'}), 400
 
-    images = []
-    for image in image_files:
-        if image and allowed_file(image.filename, ['png', 'jpg', 'jpeg', 'bmp', 'gif']):
-            img_stream = io.BytesIO(image.read())
-            images.append(Image.open(img_stream).convert('RGB'))
+        images = []
+        for image in image_files:
+            if image and allowed_file(image.filename, ['png', 'jpg', 'jpeg', 'bmp', 'gif']):
+                try:
+                    img_stream = io.BytesIO(image.read())
+                    images.append(Image.open(img_stream).convert('RGB'))
+                except Exception as e:
+                    return jsonify({'error': 'Invalid or corrupted image file'}), 400
 
-    if images:
-        pdf_stream = io.BytesIO()
-        images[0].save(pdf_stream, save_all=True, append_images=images[1:], format='PDF')
-        pdf_stream.seek(0)
+        if images:
+            pdf_stream = io.BytesIO()
+            images[0].save(pdf_stream, save_all=True, append_images=images[1:], format='PDF')
+            pdf_stream.seek(0)
 
-    return send_file(pdf_stream, as_attachment=True, download_name='images.pdf')
-
+        return send_file(pdf_stream, as_attachment=True, download_name='images.pdf')
+    except Exception as e:
+        app.logger.error(f"Error in image_to_pdf: {str(e)}")
+        return jsonify({'error': 'Failed to convert images to PDF'}), 500
 
 @app.route('/encrypt_pdf', methods=['POST'])
 def encrypt_pdf():
-    if 'pdf_file' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-    pdf_file = request.files['pdf_file']
-    password = request.form.get('password')
-    if not pdf_file or pdf_file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
+    try:
+        if 'pdf_file' not in request.files:
+            return jsonify({'error': 'No file selected'}), 400
+        
+        pdf_file = request.files['pdf_file']
+        password = request.form.get('password')
+        if not pdf_file or pdf_file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file_size([pdf_file]):
+            return jsonify({'error': 'File size exceeds 4.5MB limit'}), 400
 
-    if pdf_file and allowed_file(pdf_file.filename, ['pdf']):
-        pdf_stream = io.BytesIO(pdf_file.read())
-        reader = PdfReader(pdf_stream)
-        writer = PdfWriter()
-        for page in reader.pages:
-            writer.add_page(page)
-        writer.encrypt(password)
+        if pdf_file and allowed_file(pdf_file.filename, ['pdf']):
+            try:
+                pdf_stream = io.BytesIO(pdf_file.read())
+                reader = PdfReader(pdf_stream)
+                writer = PdfWriter()
+                for page in reader.pages:
+                    writer.add_page(page)
+                writer.encrypt(password)
 
-        encrypted_pdf_stream = io.BytesIO()
-        writer.write(encrypted_pdf_stream)
-        encrypted_pdf_stream.seek(0)
+                encrypted_pdf_stream = io.BytesIO()
+                writer.write(encrypted_pdf_stream)
+                encrypted_pdf_stream.seek(0)
 
-    return send_file(encrypted_pdf_stream, as_attachment=True, download_name='encrypted.pdf')
+                return send_file(encrypted_pdf_stream, as_attachment=True, download_name='encrypted.pdf')
+            except Exception as e:
+                return jsonify({'error': 'Invalid or corrupted PDF file'}), 400
+    except Exception as e:
+        app.logger.error(f"Error in encrypt_pdf: {str(e)}")
+        return jsonify({'error': 'Failed to encrypt PDF'}), 500
 
 ALLOWED_EXTENSIONS = {'pdf'}
 
 @app.route('/pdf_to_image', methods=['POST'])
 def pdf_to_image():
-    if 'pdf_file' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-
-    pdf_file = request.files['pdf_file']
-
-    if not pdf_file or pdf_file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
-
-    if not allowed_file(pdf_file.filename, ALLOWED_EXTENSIONS):
-        flash('Invalid file type. Please upload a PDF file.')
-        return redirect(request.url)
-
     try:
-        # Convert PDF to images
-        pdf_bytes = pdf_file.read()
-        images = convert_pdf_to_images(pdf_bytes)
+        if 'pdf_file' not in request.files:
+            return jsonify({'error': 'No file selected'}), 400
+        
+        pdf_file = request.files['pdf_file']
 
-        # Create a zip file containing all images
-        zip_filename = os.path.join('/tmp', 'converted_images.zip')
-        create_zip(images, zip_filename)
+        if not pdf_file or pdf_file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file_size([pdf_file]):
+            return jsonify({'error': 'File size exceeds 4.5MB limit'}), 400
 
-        # Send the zip file for download
-        return send_file(zip_filename, as_attachment=True)
+        if not allowed_file(pdf_file.filename, ALLOWED_EXTENSIONS):
+            return jsonify({'error': 'Invalid file type. Please upload a PDF file.'}), 400
 
+        try:
+            # Convert PDF to images
+            pdf_bytes = pdf_file.read()
+            images = convert_pdf_to_images(pdf_bytes)
+
+            # Create a zip file in memory
+            memory_zip = io.BytesIO()
+            with zipfile.ZipFile(memory_zip, 'w') as zipf:
+                for i, img_stream in enumerate(images):
+                    img_stream.seek(0)  # Ensure the stream is at the start
+                    zipf.writestr(f'page_{i + 1}.jpg', img_stream.read())
+
+            # Prepare the zip file for sending
+            memory_zip.seek(0)
+            return send_file(
+                memory_zip,
+                mimetype='application/zip',
+                as_attachment=True,
+                download_name='extracted_images.zip'
+            )
+        except Exception as e:
+            return jsonify({'error': 'Failed to convert PDF to images'}), 500
     except Exception as e:
-        app.logger.error(f"Error processing PDF: {str(e)}")
-        flash(f"Error processing PDF: {str(e)}")
-        return redirect(request.url)
+        app.logger.error(f"Error in pdf_to_image: {str(e)}")
+        return jsonify({'error': 'Failed to convert PDF to images'}), 500
+
+@app.route('/split_pdf', methods=['POST'])
+def split_pdf():
+    try:
+        if 'pdf_file' not in request.files:
+            return jsonify({'error': 'No file selected'}), 400
+        
+        pdf_file = request.files['pdf_file']
+        if not pdf_file or pdf_file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        if not allowed_file_size([pdf_file]):
+            return jsonify({'error': 'File size exceeds 4.5MB limit'}), 400
+
+        start_page = int(request.form['start_page'])
+        end_page = int(request.form['end_page'])
+
+        if start_page < 1 or end_page < start_page:
+            return jsonify({'error': 'Invalid page numbers'}), 400
+
+        if pdf_file and allowed_file(pdf_file.filename, ['pdf']):
+            try:
+                pdf_stream = io.BytesIO(pdf_file.read())
+                pdf_reader = PdfReader(pdf_stream)
+                pdf_writer = PdfWriter()
+
+                for page_num in range(start_page - 1, min(end_page, len(pdf_reader.pages))):
+                    pdf_writer.add_page(pdf_reader.pages[page_num])
+
+                split_pdf_stream = io.BytesIO()
+                pdf_writer.write(split_pdf_stream)
+                split_pdf_stream.seek(0)
+
+                return send_file(split_pdf_stream, as_attachment=True, download_name='split.pdf')
+            except Exception as e:
+                return jsonify({'error': 'Invalid or corrupted PDF file'}), 400
+    except Exception as e:
+        app.logger.error(f"Error in split_pdf: {str(e)}")
+        return jsonify({'error': 'Failed to split PDF'}), 500
+
+@app.route('/split_pdf_specific_pages', methods=['POST'])
+def split_pdf_specific_pages():
+    try:
+        if 'pdf_file' not in request.files:
+            return jsonify({'error': 'No file selected'}), 400
+        
+        pdf_file = request.files['pdf_file']
+        pages = request.form.get('pages')
+        if not pdf_file or pdf_file.filename == '' or not pages:
+            return jsonify({'error': 'No file selected or pages not specified'}), 400
+        
+        if not allowed_file_size([pdf_file]):
+            return jsonify({'error': 'File size exceeds 4.5MB limit'}), 400
+
+        pages = [int(page) - 1 for page in pages.split(',')]
+
+        if pdf_file and allowed_file(pdf_file.filename, ['pdf']):
+            try:
+                pdf_stream = io.BytesIO(pdf_file.read())
+                reader = PdfReader(pdf_stream)
+                writer = PdfWriter()
+                for page_num in pages:
+                    writer.add_page(reader.pages[page_num])
+
+                split_pdf_stream = io.BytesIO()
+                writer.write(split_pdf_stream)
+                split_pdf_stream.seek(0)
+
+                return send_file(split_pdf_stream, as_attachment=True, download_name='split_specific.pdf')
+            except Exception as e:
+                return jsonify({'error': 'Invalid or corrupted PDF file'}), 400
+    except Exception as e:
+        app.logger.error(f"Error in split_pdf_specific_pages: {str(e)}")
+        return jsonify({'error': 'Failed to split PDF'}), 500
 
 def convert_pdf_to_images(pdf_bytes):
     images = []
@@ -145,76 +287,8 @@ def convert_pdf_to_images(pdf_bytes):
         images.append(img_stream)
     return images
 
-def create_zip(images, zip_filename):
-    with zipfile.ZipFile(zip_filename, 'w') as zipf:
-        for i, img_stream in enumerate(images):
-            img_stream.seek(0)  # Ensure the stream is at the start
-            zipf.writestr(f'page_{i + 1}.jpg', img_stream.read())
-
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
-@app.route('/split_pdf', methods=['POST'])
-def split_pdf():
-    if 'pdf_file' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-    pdf_file = request.files['pdf_file']
-    if not pdf_file or pdf_file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
-
-    start_page = int(request.form['start_page'])
-    end_page = int(request.form['end_page'])
-
-    if start_page < 1 or end_page < start_page:
-        flash('Invalid page numbers')
-        return redirect(request.url)
-
-    if pdf_file and allowed_file(pdf_file.filename, ['pdf']):
-        pdf_stream = io.BytesIO(pdf_file.read())
-        pdf_reader = PdfReader(pdf_stream)
-        pdf_writer = PdfWriter()
-
-        for page_num in range(start_page - 1, min(end_page, len(pdf_reader.pages))):
-            pdf_writer.add_page(pdf_reader.pages[page_num])
-
-        split_pdf_stream = io.BytesIO()
-        pdf_writer.write(split_pdf_stream)
-        split_pdf_stream.seek(0)
-
-    return send_file(split_pdf_stream, as_attachment=True, download_name='split.pdf')
-
-
-@app.route('/split_pdf_specific_pages', methods=['POST'])
-def split_pdf_specific_pages():
-    if 'pdf_file' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-    pdf_file = request.files['pdf_file']
-    pages = request.form.get('pages')
-    if not pdf_file or pdf_file.filename == '' or not pages:
-        flash('No selected file or pages')
-        return redirect(request.url)
-
-    pages = [int(page) - 1 for page in pages.split(',')]
-
-    if pdf_file and allowed_file(pdf_file.filename, ['pdf']):
-        pdf_stream = io.BytesIO(pdf_file.read())
-        reader = PdfReader(pdf_stream)
-        writer = PdfWriter()
-        for page_num in pages:
-            writer.add_page(reader.pages[page_num])
-
-        split_pdf_stream = io.BytesIO()
-        writer.write(split_pdf_stream)
-        split_pdf_stream.seek(0)
-
-    return send_file(split_pdf_stream, as_attachment=True, download_name='split_specific.pdf')
-
-
-def allowed_file(filename, allowed_extensions):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
-
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000,)
+    app.run(host='0.0.0.0', port=5000)

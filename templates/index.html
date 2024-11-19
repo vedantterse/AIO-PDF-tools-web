@@ -1,254 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>AIO-PDF TOOLS</title>
-    <link rel="icon" href="../static/favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIO PDF Tools - All-in-One PDF Management Solution | Free Online PDF Tools</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Free online PDF tools for merging, splitting, converting, and managing PDF files. All-in-one PDF solution with encryption, image extraction, and more. Built with Python.">
+    <meta name="keywords" content="pdf tools, merge pdf, split pdf, convert pdf, pdf to image, pdf management, online pdf tools, free pdf tools, python pdf project, pdf encryption">
+    <meta name="author" content="Vedant Terse">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags for Social Media -->
+    <meta property="og:title" content="AIO PDF Tools - All-in-One PDF Management Solution">
+    <meta property="og:description" content="Free online PDF tools for merging, splitting, converting, and managing PDF files. Built with Python and Flask.">
+    <meta property="og:image" content="https://aio-pdf-tools.vercel.app/static/images/og-image.png">
+    <meta property="og:url" content="https://aio-pdf-tools.vercel.app">
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AIO PDF Tools - Free Online PDF Management">
+    <meta name="twitter:description" content="Comprehensive PDF management tools including merge, split, convert, and encrypt. Open-source project built with Python.">
+    <meta name="twitter:image" content="https://aio-pdf-tools.vercel.app/static/images/twitter-card.png">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://aio-pdf-tools.vercel.app">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "AIO PDF Tools",
+        "description": "All-in-One PDF management solution offering free online tools for PDF manipulation including merge, split, convert, and encrypt functions.",
+        "url": "https://aio-pdf-tools.vercel.app",
+        "applicationCategory": "Utility",
+        "operatingSystem": "All",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "featureList": [
+            "PDF Merging",
+            "PDF Splitting",
+            "PDF to Image Conversion",
+            "PDF Encryption",
+            "Image to PDF Conversion",
+            "PDF Page Extraction"
+        ],
+        "author": {
+            "@type": "Person",
+            "name": "Vedant Terse",
+            "url": "https://github.com/vedantterse"
+        },
+        "programmingLanguage": "Python",
+        "softwareVersion": "1.0"
+    }
+    </script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background: linear-gradient(45deg, #7f7fd5, #86a8e7, #91eae4);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
+        .grid-container {
             display: grid;
-            grid-template-columns: repeat(1, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             grid-gap: 20px;
         }
 
-        @keyframes gradient {
-            0% {
-                background-position: 10% 50%;
-            }
-            50% {
-                background-position: 100% 50%;
-            }
-            100% {
-                background-position: 0% 50%;
-            }
-
-        }
-
-        h1 {
-            color: #f8f4f4;
-            grid-column: span 2;
-            text-align: center;
-        }
-
-        form {
-            background-color: #fff;
+        .form-container {
+            background-color: #f7f7f7;
             padding: 20px;
-            border-radius: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        input[type="file"],
-        input[type="password"],
-        input[type="text"],
-        input[type="number"],
-        button {
-            padding: 10px;
-            margin-right: 20px;
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .file-input-button {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 10px 20px;
             border: none;
             border-radius: 5px;
-            background-color: #4cafaf;
-            color: white;
-            font-size: 16px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
         }
 
-        input[type="file"]:hover,
-        input[type="password"]:hover,
-        input[type="text"]:hover,
-        input[type="number"]:hover,
-        button:hover {
-            background-color: #45a049;
+        .file-input-button:hover {
+            background-color: #3e8e41;
         }
 
-        button[type="submit"] {
-            background-color: #008cba;
+        .file-input-button input[type="file"] {
+            display: none;
         }
 
-        button[type="submit"]:hover {
-            background-color: #007baa;
-        }
-
-        .flashes {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .flashes li {
-            background-color: #f44336;
-            color: white;
-            padding: 15px;
-            margin-bottom: 10px;
+        .notification {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 10px;
             border-radius: 5px;
+            background-color: #4CAF50;
+            color: #fff;
+            display: none;
         }
 
-        input::placeholder {
-            color: white; /* Set placeholder text color to white */
+        .notification.show {
+            display: block;
         }
 
-        .github-logo {
-            position: absolute;
-            top: 30px;
-            right: 30px;
+        .notification.hide {
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .notification.error {
+            background-color: #f44336;
         }
     </style>
 </head>
 <body>
-    <a href="https://github.com/vedantterse/AIO-PDF-tools-web" class="github-logo"><i class="fa fa-github" style="font-size:55px"></i></a>
-    <h1>AIO-PDF TOOLS</h1>
+    <div class="notification" id="notification"></div>
 
-    <form action="/merge_pdfs" method="post" enctype="multipart/form-data" onsubmit="return validateMergeForm('merge')">
-        <h2>Merge PDFs</h2>
-        <input type="file" name="pdf_files" id="pdf_files_merge" multiple />
-        <button type="submit">Merge</button>
-    </form>
+    <a href="https://github.com/vedantterse/AIO-PDF-tools-web" class="github-logo" target="_blank">
+        <svg height="32" viewBox="0 0 16 16" width="32">
+            <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+        </svg>
+    </a>
 
-    <form action="/image_to_pdf" method="post" enctype="multipart/form-data" onsubmit="return validateImageToPdfForm()">
-        <h2>Convert Images to PDF</h2>
-        <input type="file" name="image_files" id="image_files" multiple />
-        <button type="submit">Convert</button>
-    </form>
+    <div class="container">
+        <h1>AIO PDF Tools</h1>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
 
-    <form action="/encrypt_pdf" method="post" enctype="multipart/form-data" onsubmit="return validateEncryptPdfForm()">
-    <h2>Encrypt PDF</h2>
-    <input type="file" name="pdf_file" id="pdf_file_encrypt" />
-    <input type="password" name="password" id="password" placeholder="Enter password" />
-    <button type="submit">Encrypt</button>
-    </form>
+        <div class="grid-container">
+            <!-- Merge PDFs -->
+            <div class="form-container">
+                <h2 class="form-title">Merge PDFs</h2>
+                <form id="merge-form" action="{{ url_for('merge_pdfs') }}" method="post" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <label class="file-input-button">
+                            Choose File
+                            <input type="file" name="pdf_files" multiple accept=".pdf" required>
+                        </label>
+                    </div>
+                    <button type="submit">Merge PDFs</button>
+                </form>
+            </div>
 
+            <!-- Convert Images to PDF -->
+            <div class="form-container">
+                <h2 class="form-title">Images to PDF</h2>
+                <form action="{{ url_for('image_to_pdf') }}" method="post" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <label class="file-input-button">
+                            Choose File
+                            <input type="file" name="image_files" multiple accept="image/*" required>
+                        </label>
+                    </div>
+                    <button type="submit">Convert to PDF</button>
+                </form>
+            </div>
 
-    <form action="/pdf_to_image" method="post" enctype="multipart/form-data" onsubmit="return validatePdfToImageForm()">
-    <h2>Extract Images from PDF</h2>
-    <input type="file" name="pdf_file" id="pdf_file_image" />
-    <button type="submit">Extract</button>
-    </form>
+            <!-- Encrypt PDF -->
+            <div class="form-container">
+                <h2 class="form-title">Encrypt PDF</h2>
+                <form action="{{ url_for('encrypt_pdf') }}" method="post" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <label class="file-input-button">
+                            Choose File
+                            <input type="file" name="pdf_file" accept=".pdf" required>
+                        </label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" name="password" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit">Encrypt PDF</button>
+                </form>
+            </div>
 
+            <!-- Extract Images -->
+            <div class="form-container">
+                <h2 class="form-title">Extract Images</h2>
+                <form action="{{ url_for('pdf_to_image') }}" method="post" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <label class="file-input-button">
+                            Choose File
+                            <input type="file" name="pdf_file" accept=".pdf" required>
+                        </label>
+                    </div>
+                    <button type="submit">Extract Images</button>
+                </form>
+            </div>
 
-    <form action="/split_pdf" method="post" enctype="multipart/form-data" onsubmit="return validateSplitPdfForm()">
+            <!-- Split PDF -->
+            <div class="form-container">
+                <h2 class="form-title">Split PDF</h2>
+                <form action="{{ url_for('split_pdf') }}" method="post" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <label class="file-input-button">
+                            Choose File
+                            <input type="file" name="pdf_file" accept=".pdf" required>
+                        </label>
+                    </div>
+                    <div class="input-group">
+                        <input type="number" name="start_page" placeholder="Start page" required min="1">
+                    </div>
+                    <div class="input-group">
+                        <input type="number" name="end_page" placeholder="End page" required min="1">
+                    </div>
+                    <button type="submit">Split PDF</button>
+                </form>
+            </div>
 
-            <h2>Split PDF</h2>
-            <input type="file" name="pdf_file" />
-            <h2>
-            </h2>
-            <input type="number" name="start_page" placeholder="Start Page" />
-
-            <button type="submit">Split</button>
-
-            <h2>
-            </h2>
-            <input type="number" name="end_page" placeholder="End Page" />
-        </form>
-
-    <form action="/split_pdf_specific_pages" method="post" enctype="multipart/form-data" onsubmit="return validateSplitSpecificPagesForm()">
-    <h2>Split PDF by Specific Pages</h2>
-    <input type="file" name="pdf_file" id="pdf_file_specific_pages" />
-    <input type="text" name="pages" id="pages" placeholder="Enter pages (comma-separated)" />
-    <button type="submit">Split</button>
-    </form>
-
-
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <ul class="flashes">
-                {% for message in messages %}
-                    <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
-
-    <footer>
-        &copy; 2024 Made by Vedantterse
-    </footer>
+            <!-- Split PDF by Pages -->
+            <div class="form-container">
+                <h2 class="form-title">Split by Pages</h2>
+                <form action="{{ url_for('split_pdf_specific_pages') }}" method="post" enctype="multipart/form-data">
+                    <div class="file-input-wrapper">
+                        <label class="file-input-button">
+                            Choose File
+                            <input type="file" name="pdf_file" accept=".pdf" required>
+                        </label>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" name="pages" placeholder="Enter page numbers (e.g., 1,3-5,7)" required>
+                    </div>
+                    <button type="submit">Split PDF</button>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
-        function validateMergeForm(formId) {
-            var fileInput = document.getElementById('pdf_files_' + formId);
-            if (fileInput.files.length === 0) {
-                alert('Please select PDF files to merge.');
-                return false; // Prevent form submission
-            }
-            return true; // Allow form submission
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.remove('show', 'hide', 'error');
+            if (isError) notification.classList.add('error');
+            
+            notification.offsetHeight;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.add('hide');
+                setTimeout(() => {
+                    notification.classList.remove('show', 'hide', 'error');
+                }, 500);
+            }, 3000);
         }
 
-        function validateImageToPdfForm() {
-            var fileInput = document.getElementById('image_files');
-            if (fileInput.files.length === 0) {
-                alert('Please select image files to convert to PDF.');
-                return false; // Prevent form submission
-            }
-            return true; // Allow form submission
+        function resetForm(form) {
+            form.reset();
+
+            form.querySelectorAll('input[type="file"]').forEach(input => {
+                const button = input.previousElementSibling;
+                if (button) {
+                    button.textContent = 'Choose File';
+                }
+            });
+
+            form.querySelectorAll('.file-count').forEach(counter => {
+                counter.textContent = '';
+            });
         }
 
-        function validateEncryptPdfForm() {
-        var fileInput = document.getElementById('pdf_file_encrypt');
-        var passwordInput = document.getElementById('password');
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const fileInputs = form.querySelectorAll('input[type="file"]');
+                let hasFiles = false;
 
-        if (fileInput.files.length === 0) {
-            alert('Please select a PDF file to encrypt.');
-            return false; // Prevent form submission
-        }
+                fileInputs.forEach(input => {
+                    if (input.files && input.files.length > 0) {
+                        hasFiles = true;
+                    }
+                });
 
-        if (passwordInput.value.trim() === '') {
-            alert('Please enter a password to encrypt the PDF.');
-            passwordInput.focus(); // Set focus on the password field
-            return false; // Prevent form submission
-        }
+                if (!hasFiles) {
+                    showNotification('Please select a PDF file first', true);
+                    return;
+                }
 
-        return true; // Allow form submission
-    }
+                if (form.id === 'merge-form') {
+                    const mergeInput = form.querySelector('input[type="file"]');
+                    if (mergeInput.files.length < 2) {
+                        showNotification('Please select at least two PDF files to merge', true);
+                        return;
+                    }
+                }
 
-        function validatePdfToImageForm() {
-            var fileInput = document.getElementById('pdf_file_image');
-            if (fileInput.files.length === 0) {
-                alert('Please select a PDF file to extract images.');
-                return false; // Prevent form submission
-            }
-            return true; // Allow form submission
-        }
+                try {
+                    const formData = new FormData(form);
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData
+                    });
 
-        function validateSplitPdfForm() {
-        var fileInput = document.querySelector('input[type="file"]');
-        var startPageInput = document.querySelector('input[name="start_page"]');
-        var endPageInput = document.querySelector('input[name="end_page"]');
+                    if (!response.ok) {
+                        const data = await response.json();
+                        throw new Error(data.error || 'An error occurred');
+                    }
 
-        if (fileInput.files.length === 0) {
-            alert('Please select a PDF file to split.');
-            return false; // Prevent form submission
-        }
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                    } else {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = response.headers.get('content-disposition')?.split('filename=')[1] || 'download';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        a.remove();
 
-        if (startPageInput.value.trim() === '' || endPageInput.value.trim() === '') {
-            alert('Please enter valid start and end page numbers.');
-            return false; // Prevent form submission
-        }
+                        resetForm(form);
+                        showNotification('Operation completed successfully');
+                    }
+                } catch (error) {
+                    showNotification(error.message || 'An error occurred', true);
+                }
+            });
+        });
 
-        return true; // Allow form submission
-    }
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function() {
+                const button = this.previousElementSibling;
+                const fileCount = this.files.length;
+                button.textContent = fileCount > 0 ? `${fileCount} file(s) selected` : 'Choose';
+            });
+        });
 
-        function validateSplitSpecificPagesForm() {
-        var fileInput = document.getElementById('pdf_file_specific_pages');
-        var pagesInput = document.getElementById('pages');
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const maxSize = 4.5 * 1024 * 1024; 
+                let totalSize = 0;
 
-        if (fileInput.files.length === 0) {
-            alert('Please select a PDF file to split by specific pages.');
-            return false; // Prevent form submission
-        }
+                if (input.files) {
+                    for (let file of input.files) {
+                        totalSize += file.size;
+                    }
 
-        if (pagesInput.value.trim() === '') {
-            alert('Please enter specific pages to split.');
-            pagesInput.focus(); // Set focus on the pages input field
-            return false; // Prevent form submission
-        }
-
-        return true; // Allow form submission
-    }
+                    if (totalSize > maxSize) {
+                        input.value = ''; 
+                        showNotification('File size should not exceed 4.5MB', true);
+                        return false;
+                    }
+                }
+                return true;
+            });
+        });
     </script>
 </body>
 </html>
