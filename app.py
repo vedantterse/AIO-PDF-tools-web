@@ -70,7 +70,7 @@ def merge_pdfs():
         if not allowed_file_size(pdf_files):
             return jsonify({'error': 'Total file size exceeds 4.5MB limit'}), 400
 
-        merger = PdfMerger()
+        merger = PdfMerger(strict=False)
         for pdf in pdf_files:
             if pdf and allowed_file(pdf.filename, ['pdf']):
                 try:
@@ -84,7 +84,12 @@ def merge_pdfs():
         merger.close()
         merged_pdf_stream.seek(0)
 
-        return send_file(merged_pdf_stream, as_attachment=True, download_name='merged.pdf')
+        return send_file(
+            merged_pdf_stream,
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name='merged.pdf'
+        )
     except Exception as e:
         app.logger.error(f"Error in merge_pdfs: {str(e)}")
         return jsonify({'error': 'Failed to merge PDFs'}), 500
@@ -225,15 +230,26 @@ def split_pdf():
                 pdf_reader = PdfReader(pdf_stream)
                 pdf_writer = PdfWriter()
 
-                for page_num in range(start_page - 1, min(end_page, len(pdf_reader.pages))):
-                    pdf_writer.add_page(pdf_reader.pages[page_num])
+                # Adjust page numbers to 0-based index
+                start_idx = start_page - 1
+                end_idx = min(end_page, len(pdf_reader.pages))
 
-                split_pdf_stream = io.BytesIO()
-                pdf_writer.write(split_pdf_stream)
-                split_pdf_stream.seek(0)
+                for page_num in range(start_idx, end_idx):
+                    page = pdf_reader.pages[page_num]
+                    pdf_writer.add_page(page)
 
-                return send_file(split_pdf_stream, as_attachment=True, download_name='split.pdf')
+                output_stream = io.BytesIO()
+                pdf_writer.write(output_stream)
+                output_stream.seek(0)
+
+                return send_file(
+                    output_stream,
+                    mimetype='application/pdf',
+                    as_attachment=True,
+                    download_name='split.pdf'
+                )
             except Exception as e:
+                app.logger.error(f"Split PDF error: {str(e)}")
                 return jsonify({'error': 'Invalid or corrupted PDF file'}), 400
     except Exception as e:
         app.logger.error(f"Error in split_pdf: {str(e)}")
@@ -277,14 +293,21 @@ def split_pdf_specific_pages():
 def convert_pdf_to_images(pdf_bytes):
     images = []
     pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
+    
     for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-        pix = page.get_pixmap()
+        page = pdf_document[page_num]
+        zoom = 2
+        mat = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=mat, alpha=False)
+        
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        
         img_stream = io.BytesIO()
-        img.save(img_stream, format='JPEG')
+        img.save(img_stream, format='JPEG', quality=95)
         img_stream.seek(0)
         images.append(img_stream)
+    
+    pdf_document.close()
     return images
 
 def allowed_file(filename, allowed_extensions):

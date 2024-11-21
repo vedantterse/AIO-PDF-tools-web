@@ -65,69 +65,36 @@
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-gap: 20px;
-        }
+    
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
 
-        .form-container {
-            background-color: #f7f7f7;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .file-input-wrapper {
-            margin-bottom: 20px;
-        }
-
-        .file-input-button {
-            background-color: #4CAF50;
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .file-input-button:hover {
-            background-color: #3e8e41;
-        }
-
-        .file-input-button input[type="file"] {
-            display: none;
-        }
-
-        .notification {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            padding: 10px;
-            border-radius: 5px;
-            background-color: #4CAF50;
-            color: #fff;
-            display: none;
-        }
-
-        .notification.show {
-            display: block;
-        }
-
-        .notification.hide {
-            opacity: 0;
-            transition: opacity 0.5s;
-        }
-
-        .notification.error {
-            background-color: #f44336;
-        }
-    </style>
 </head>
 <body>
-    <div class="notification" id="notification"></div>
+    <div class="toast-notification" id="toastNotification">
+        <div class="toast-icon"></div>
+        <span class="toast-message"></span>
+    </div>
+
+    <div id="notification" class="notification">
+        <div class="notification-icon"></div>
+        <span class="notification-message"></span>
+    </div>
+
+    <div class="progress-overlay" id="progressOverlay">
+        <div class="progress-container">
+            <div class="progress-circle">
+                <svg class="progress-ring" width="120" height="120">
+                    <circle class="progress-ring-circle" stroke="#64ffda" stroke-width="6" fill="transparent" r="52" cx="60" cy="60"/>
+                </svg>
+                <svg class="checkmark" viewBox="0 0 52 52">
+                    <path fill="none" d="M14,27 l9,9 l15,-15"/>
+                </svg>
+                <div class="progress-text">0%</div>
+            </div>
+            <div class="progress-status">Processing...</div>
+        </div>
+    </div>
 
     <a href="https://github.com/vedantterse/AIO-PDF-tools-web" class="github-logo" target="_blank">
         <svg height="32" viewBox="0 0 16 16" width="32">
@@ -239,7 +206,7 @@
                         </label>
                     </div>
                     <div class="input-group">
-                        <input type="text" name="pages" placeholder="Enter page numbers (e.g., 1,3-5,7)" required>
+                        <input type="text" name="pages" placeholder="Enter page numbers (e.g., 1,3,5,7)" required>
                     </div>
                     <button type="submit">Split PDF</button>
                 </form>
@@ -247,130 +214,16 @@
         </div>
     </div>
 
-    <script>
-        function showNotification(message, isError = false) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.classList.remove('show', 'hide', 'error');
-            if (isError) notification.classList.add('error');
-            
-            notification.offsetHeight;
-            notification.classList.add('show');
-            
-            setTimeout(() => {
-                notification.classList.add('hide');
-                setTimeout(() => {
-                    notification.classList.remove('show', 'hide', 'error');
-                }, 500);
-            }, 3000);
-        }
+    <footer class="footer">
+        <div class="footer-text">
+            <span class="copyright-symbol">©</span>
+            <span class="year">2024</span>
+            <span class="separator">|</span>
+            <a href="https://github.com/vedantterse" target="_blank" class="author-link">vedantterse</a>
+            <span class="dot">•</span>
+            <span class="rights">All rights reserved</span>
+        </div>
+    </footer>
 
-        function resetForm(form) {
-            form.reset();
-
-            form.querySelectorAll('input[type="file"]').forEach(input => {
-                const button = input.previousElementSibling;
-                if (button) {
-                    button.textContent = 'Choose File';
-                }
-            });
-
-            form.querySelectorAll('.file-count').forEach(counter => {
-                counter.textContent = '';
-            });
-        }
-
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                
-                const fileInputs = form.querySelectorAll('input[type="file"]');
-                let hasFiles = false;
-
-                fileInputs.forEach(input => {
-                    if (input.files && input.files.length > 0) {
-                        hasFiles = true;
-                    }
-                });
-
-                if (!hasFiles) {
-                    showNotification('Please select a PDF file first', true);
-                    return;
-                }
-
-                if (form.id === 'merge-form') {
-                    const mergeInput = form.querySelector('input[type="file"]');
-                    if (mergeInput.files.length < 2) {
-                        showNotification('Please select at least two PDF files to merge', true);
-                        return;
-                    }
-                }
-
-                try {
-                    const formData = new FormData(form);
-                    const response = await fetch(form.action, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    if (!response.ok) {
-                        const data = await response.json();
-                        throw new Error(data.error || 'An error occurred');
-                    }
-
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const data = await response.json();
-                        if (data.error) {
-                            throw new Error(data.error);
-                        }
-                    } else {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = response.headers.get('content-disposition')?.split('filename=')[1] || 'download';
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-                        a.remove();
-
-                        resetForm(form);
-                        showNotification('Operation completed successfully');
-                    }
-                } catch (error) {
-                    showNotification(error.message || 'An error occurred', true);
-                }
-            });
-        });
-
-        document.querySelectorAll('input[type="file"]').forEach(input => {
-            input.addEventListener('change', function() {
-                const button = this.previousElementSibling;
-                const fileCount = this.files.length;
-                button.textContent = fileCount > 0 ? `${fileCount} file(s) selected` : 'Choose';
-            });
-        });
-
-        document.querySelectorAll('input[type="file"]').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const maxSize = 4.5 * 1024 * 1024; 
-                let totalSize = 0;
-
-                if (input.files) {
-                    for (let file of input.files) {
-                        totalSize += file.size;
-                    }
-
-                    if (totalSize > maxSize) {
-                        input.value = ''; 
-                        showNotification('File size should not exceed 4.5MB', true);
-                        return false;
-                    }
-                }
-                return true;
-            });
-        });
-    </script>
 </body>
 </html>
